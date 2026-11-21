@@ -1,4 +1,8 @@
 #include "systemcalls.h"
+#include <stdlib.h>   // system(), EXIT_FAILURE
+#include <unistd.h>   // fork(), execv(), _exit(), pid_t, dup2(), STDOUT_FILENO
+#include <sys/wait.h> // waitpid(), WIFEXITED, WEXITSTATUS
+#include <fcntl.h>    // open(), O_WRONLY, O_CREAT, O_TRUNC
 
 /**
  * @param cmd the command to execute with system()
@@ -17,7 +21,8 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 
-    return true;
+    int ret = system(cmd);
+    return (ret == 0);
 }
 
 /**
@@ -47,7 +52,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    //command[count] = command[count];
 
 /*
  * TODO:
@@ -58,6 +63,29 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    fflush(stdout);
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        
+        execv(command[0], command);
+        // execv
+        _exit(EXIT_FAILURE); 
+    } else if (pid > 0) {
+         
+        int status;
+        if (waitpid(pid, &status, 0) == -1) {
+            return false;
+        }
+        // 0
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            return true;
+        }
+        return false;
+    } else {
+        // fork 
+        return false;
+    }
 
     va_end(args);
 
@@ -92,6 +120,38 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    fflush(stdout);
+    pid_t pid = fork();
+    
+    if (pid == 0) {
+        // stdout
+        int fd = open(outputfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd == -1) {
+            _exit(EXIT_FAILURE);
+        }
+        
+        // dup2
+        if (dup2(fd, STDOUT_FILENO) == -1) {
+            close(fd);
+            _exit(EXIT_FAILURE);
+        }
+        close(fd); // fd
+
+        execv(command[0], command);
+        _exit(EXIT_FAILURE); // execv
+    } else if (pid > 0) {
+        
+        int status;
+        if (waitpid(pid, &status, 0) == -1) {
+            return false;
+        }
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            return true;
+        }
+        return false;
+    } else {
+        return false;
+    }
 
     va_end(args);
 
