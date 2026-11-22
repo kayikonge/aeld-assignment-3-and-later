@@ -38,7 +38,7 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     echo "Building the kernel..."
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc) all
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j2 all
     
     
 fi
